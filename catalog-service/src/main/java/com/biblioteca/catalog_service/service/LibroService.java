@@ -84,6 +84,28 @@ public class LibroService {
         libroRepository.delete(buscarPorId(id));
     }
 
+    @Transactional
+    public LibroResponse ajustarStock(Long id, int cambio) {
+        if (cambio == 0) {
+            throw new BusinessRuleException("El cambio de stock no puede ser 0");
+        }
+
+        Libro libro = libroRepository.findByIdForUpdate(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Libro no encontrado con id " + id));
+
+        int nuevo = libro.getStockDisponible() + cambio;
+
+        if (nuevo < 0) {
+            throw new BusinessRuleException("No hay stock disponible para este libro");
+        }
+        if (nuevo > libro.getStockTotal()) {
+            throw new BusinessRuleException("El stock disponible no puede superar el stock total");
+        }
+
+        libro.setStockDisponible(nuevo);
+        return toResponse(libroRepository.save(libro));
+    }
+
     private Libro buscarPorId(Long id) {
         return libroRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Libro no encontrado con id " + id));
